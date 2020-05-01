@@ -1,5 +1,8 @@
 <?php namespace Pckg\Websocket\Service;
 
+use Pckg\Websocket\Auth\PckgAuthProviderClient;
+use Pckg\Websocket\Auth\PckgClientAuth;
+use React\EventLoop\Factory;
 use Thruway\Authentication\AuthenticationManager;
 use Thruway\ClientSession;
 use Thruway\Connection;
@@ -18,7 +21,7 @@ class Websocket
     /**
      * @var array
      */
-    protected $options
+    protected $options = [];
 
     /**
      * Websocket constructor.
@@ -29,7 +32,7 @@ class Websocket
     {
         //$client = new Client("realm1");
         //$client->addTransportProvider(new PawlTransportProvider("ws://pusher-runner:50445/"));
-        $client = new Connection(
+        $this->connection = new Connection(
             [
                 "realm" => 'realm1',
                 "onClose" => function () {
@@ -59,8 +62,21 @@ class Websocket
 
     public function startAuthRouter()
     {
+        $loop = Factory::create();
         $router = new Router($loop);
 
+        $this->authenticateRouter($router, $loop);
+
+        $router->registerModule(new RatchetTransportProvider(
+            $this->options['host'],
+            $this->options['port']
+        ));
+
+        $router->start();
+    }
+
+    public function authenticateRouter(Router $router, $loop)
+    {
         $authenticationManager = new AuthenticationManager();
         $router->registerModule($authenticationManager);
 
@@ -74,15 +90,10 @@ class Websocket
         $realm = new Realm('thruway.auth');
         $realmManager->addRealm($realm);
 
-        $authProvClient = new \SimpleAuthProviderClient(["realm1"], $loop);
+        $authProvClient = new PckgAuthProviderClient(["realm1"], $loop);
+        //$authProvClient->setSignatureHandler();
 
         $router->addInternalClient($authProvClient);
-
-        $router->registerModule(new RatchetTransportProvider(
-            $this->options['host'],
-            $this->options['port']
-        ));
-        $router->start();
     }
 
     /**
@@ -92,8 +103,10 @@ class Websocket
      */
     public function publish(string $topic, array $data = [])
     {
+        $client = $this->connection;
         $this->connection->on('open', function (ClientSession $session) use ($client) {
 
+            d('publishing');
             $session->publish($topic, $data, [], ["acknowledge" => true])->then(
                 function () use ($client) {
                     $this->ack();
@@ -105,6 +118,9 @@ class Websocket
                 }
             );
         });
+
+        $clientAuth = new PckgClientAuth();
+        $this->connection->getClient()->addClientAuthenticator($clientAuth);
 
         $this->connection->open();
     }
