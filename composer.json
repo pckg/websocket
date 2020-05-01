@@ -1,0 +1,26 @@
+{
+  "name": "pckg/websocket",
+  "description": "Websocket and pusher implementation",
+  "homepage": "https://github.com/pckg/websocket",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Bojan Rajh",
+      "email": "schtr4jh@schtr4jh.net"
+    }
+  ],
+  "require": {
+    "react/zmq": "dev-master",
+    "voryx/thruway": "dev-master",
+    "thruway/pawl-transport": "dev-master",,
+    "rx/thruway-client": "^2.0@dev"
+  },
+  "minimum-stability": "dev",
+  "autoload": {
+    "psr-4": {
+      "": [
+        "src/"
+      ]
+    }
+  }
+}
