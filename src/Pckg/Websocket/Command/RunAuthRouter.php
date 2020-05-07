@@ -26,8 +26,10 @@ class RunAuthRouter
     /**
      *
      */
-    public function execute()
+    public function execute(callable $next)
     {
         $this->websocket->startAuthRouter();
+
+        return $next();
     }
 }
