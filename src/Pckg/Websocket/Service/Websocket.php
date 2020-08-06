@@ -3,6 +3,7 @@
 use Pckg\Websocket\Auth\PckgAuthProvider;
 use Pckg\Websocket\Auth\PckgClientAuth;
 use Pckg\Websocket\Auth\UserDb;
+use Ratchet\MessageComponentInterface;
 use React\EventLoop\Factory;
 use Thruway\Authentication\AuthenticationManager;
 use Thruway\Authentication\ClientWampCraAuthenticator;
@@ -169,6 +170,39 @@ class Websocket
     {
         // publish failed
         echo "Publish Error {$error}\n";
+    }
+
+    public function registerMessageComponent(MessageComponentInterface $messageComponent) {
+        d('running secure websocket');
+        $loop = \React\EventLoop\Factory::create();
+
+        $webSock = new \React\Socket\Server('0.0.0.0:50444', $loop);
+        $webSock = new \React\Socket\SecureServer($webSock, $loop, [
+            'local_cert' => '/etc/ssl/certs/apache-selfsigned.crt', // path to your cert
+            'local_pk' => '/etc/ssl/private/apache-selfsigned.key', // path to your server private key
+            'allow_self_signed' => TRUE, // Allow self signed certs (should be false in production)
+            'verify_peer' => FALSE
+        ]);
+
+        $webServer = new \Ratchet\Server\IoServer(
+            new \Ratchet\Http\HttpServer(
+                new \Ratchet\WebSocket\WsServer(
+                    $messageComponent
+                )
+            ),
+            $webSock,
+            $loop
+        );
+
+        $context = new \React\ZMQ\Context($loop);
+        $pull = $context->getSocket(\ZMQ::SOCKET_PULL);
+        $pull->bind('tcp://127.0.0.1:5555'); // Binding to 127.0.0.1 means the only client that can connect is itself
+        $pull->on('message', function (...$data) use ($messageComponent) {
+            d('listener', $data);
+            $messageComponent->forTest('some entry');
+        });
+
+        $webServer->run();
     }
 
 }
