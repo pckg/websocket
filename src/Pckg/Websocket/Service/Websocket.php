@@ -43,7 +43,7 @@ class Websocket
                 "onClose" => function () {
 
                 },
-                "url" => 'ws://' . $options['host'] . ':' . $options['port'],
+                "url" => $options['scheme'] . '://' . $options['host'] . ':' . $options['port'],
                 'authmethods' => ['pckg'],
                 'authid' => 'peter',
             ]
@@ -137,7 +137,7 @@ class Websocket
      */
     public function subscribe(string $topic, callable $callback)
     {
-        $this->connection->on('open', function (ClientSession $session) use ($client, $topic, $callback) {
+        $this->connection->on('open', function (ClientSession $session) use ($topic, $callback) {
             $session->subscribe($topic, $callback);
         });
 

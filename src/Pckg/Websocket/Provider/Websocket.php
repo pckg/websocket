@@ -2,7 +2,9 @@
 
 use Pckg\Framework\Config;
 use Pckg\Framework\Provider;
+use Pckg\Websocket\Console\PublishMessage;
 use Pckg\Websocket\Console\RegisterCommand;
+use Pckg\Websocket\Console\SubscribeChannel;
 
 /**
  * Class Websocket
@@ -30,6 +32,8 @@ class Websocket extends Provider
     {
         return [
             RegisterCommand::class,
+            PublishMessage::class,
+            SubscribeChannel::class,
         ];
     }
 
