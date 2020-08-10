@@ -12,6 +12,7 @@ class Websocket extends Console
         return [
             function () {
                 (new WebsocketService([
+                    'scheme' => 'ws',
                     'bind' => dotenv('WEBSOCKET_BIND', '0.0.0.0'),
                     'host' => dotenv('WEBSOCKET_HOST', 'pusher-runner'),
                     'port' => dotenv('WEBSOCKET_PORT', 50445),
