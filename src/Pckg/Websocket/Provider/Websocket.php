@@ -37,4 +37,18 @@ class Websocket extends Provider
         ];
     }
 
+    /**
+     * @return array|\Closure[][]
+     */
+    public function listeners()
+    {
+        return [
+            \Pckg\Websocket\Service\Websocket::class . ':publish' => [
+                function (string $topic, mixed $message, \Pckg\Websocket\Service\Websocket $websocket) {
+                    $websocket->publish($topic, [json_encode($data)]);
+                }
+            ],
+        ];
+    }
+
 }
