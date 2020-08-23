@@ -28,7 +28,7 @@ class RunAuthRouter
      */
     public function execute(callable $next)
     {
-        $config = config('pckg.websocket.server.auth', []);
+        $config = config('pckg.websocket.server', []);
         $this->websocket->startAuthRouter($config['bind'], $config['port']);
 
         return $next();
