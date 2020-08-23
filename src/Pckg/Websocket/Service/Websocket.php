@@ -2,10 +2,12 @@
 
 use Pckg\Websocket\Auth\PckgAuthProvider;
 use Pckg\Websocket\Auth\PckgClientAuth;
+use Pckg\Websocket\Auth\StaticUserDb;
 use Pckg\Websocket\Auth\UserDb;
 use Ratchet\MessageComponentInterface;
 use React\EventLoop\Factory;
 use Thruway\Authentication\AuthenticationManager;
+use Thruway\Authentication\AuthorizationManager;
 use Thruway\Authentication\ClientWampCraAuthenticator;
 use Thruway\Authentication\WampCraAuthProvider;
 use Thruway\ClientSession;
@@ -45,7 +47,7 @@ class Websocket
                 },
                 "url" => $options['scheme'] . '://' . $options['host'] . ':' . $options['port'],
                 'authmethods' => ['pckg'],
-                'authid' => 'peter',
+                'authid' => $options['authid'],
             ]
         );
         $this->options = $options;
@@ -82,15 +84,43 @@ class Websocket
     {
         $userDb = new UserDb();
 
-        $userDb->add('peter', 'secret1', 'salt123');
-        $userDb->add('joe', 'secret2', "mmm...salt");
-
         $authenticationManager = new AuthenticationManager();
         $router->registerModule($authenticationManager);
+        
+        $this->authorizeRouter($router);
 
         $authProvClient = new PckgAuthProvider(["realm1"]);
         $authProvClient->setUserDb($userDb);
         $router->addInternalClient($authProvClient);
+        return;
+
+
+        $userDb = new StaticUserDb();
+        $userDb->add('guest', 'guest', 'salt123');
+
+        $authProvClient = new PckgAuthProvider(["realm1"]);
+        $authProvClient->setUserDb($userDb);
+        $router->addInternalClient($authProvClient);
+    }
+    
+    private function authorizeRouter(Router $router)
+    {
+        $authorizationManager = new \Pckg\Websocket\Service\AuthorizationManager('realm1');
+
+        /**
+         * Disallow all access by default.
+         */
+        $authorizationManager->flushAuthorizationRules(false);
+
+        $rule         = new \stdClass();
+        $rule->role   = 'niceguy';
+        $rule->action = 'call'; // publish, subscribe, register, call
+        $rule->uri    = 'some_rpc';
+        $rule->allow  = false;
+
+        $authorizationManager->addAuthorizationRule([$rule]);
+        $authorizationManager->setReady(true);
+        $router->registerModule($authorizationManager);
     }
 
     /**
@@ -103,8 +133,7 @@ class Websocket
         $client = $this->connection;
         $this->connection->on('open', function (ClientSession $session) use ($topic, $data, $client) {
 
-            d('publishing');
-            $session->publish($topic, $data, [], ["acknowledge" => true])->then(
+            $session->publish($topic, [json_encode($data)], [], ["acknowledge" => true])->then(
                 function () use ($client) {
                     $this->ack();
                     $client->close();
@@ -115,19 +144,14 @@ class Websocket
                 }
             );
         });
-
-        $this->authenticateClient();
+        $this->authenticateClient('admin', 'admin');
 
         $this->connection->open();
     }
 
-    public function authenticateClient()
+    public function authenticateClient($user = 'guest', $pass = 'guest')
     {
-        $clientAuth = new PckgClientAuth('peter', 'secret1');
-
-        //$clientAuth = new PckgClientAuth();
-        //$clientAuth->setAuthId('peter');
-        $this->connection->getClient()->addClientAuthenticator($clientAuth);
+        $this->connection->getClient()->addClientAuthenticator(new PckgClientAuth($user, $pass));
     }
 
     /**
@@ -150,7 +174,7 @@ class Websocket
             $session->register($command, $callback);
         });
 
-        $this->authenticateClient();
+        // $this->authenticateClient();
 
         $this->connection->open();
     }

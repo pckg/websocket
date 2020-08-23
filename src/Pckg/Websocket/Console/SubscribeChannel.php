@@ -38,7 +38,7 @@ class SubscribeChannel extends Command
          * @var $websocket Websocket
          */
         $websocket = resolve(Websocket::class);
-        $websocket->authenticateClient();
+        $websocket->authenticateClient(); // as guest
         $websocket->subscribe($channel, function ($arg) {
             $this->outputDated('NEW MESSAGE ON CHANNEL:' . json_encode($arg));
         });

@@ -40,7 +40,8 @@ class PublishMessage extends Command
          * @var $websocket Websocket
          */
         $websocket = resolve(Websocket::class);
-        $websocket->publish($channel, [json_encode(['event' => $event, 'data' => $data])]);
+        $websocket->authenticateClient('admin', 'admin');
+        $websocket->publish($channel, ['event' => $event, 'data' => $data]);
     }
 
 }

@@ -37,6 +37,7 @@ class RegisterCommand extends Command
             throw new \Exception('No console class ' . $console);
         }
         $websocket = resolve(Websocket::class);
+        $websocket->authenticateClient('admin', 'admin');
         $websocket->register($command, function () use ($console) {
             return (new $console)->handle();
         });

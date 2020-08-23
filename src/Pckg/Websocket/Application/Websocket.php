@@ -12,10 +12,11 @@ class Websocket extends Console
         return [
             function () {
                 (new WebsocketService([
-                    'scheme' => 'ws',
+                    'scheme' => dotenv('WEBSOCKET_SCHEME', 'ws'),
                     'bind' => dotenv('WEBSOCKET_BIND', '0.0.0.0'),
                     'host' => dotenv('WEBSOCKET_HOST', 'pusher-runner'),
                     'port' => dotenv('WEBSOCKET_PORT', 50445),
+                    'authid' => dotenv('WEBSOCKET_AUTH_ID', 'admin'),
                 ]))->registerMessageComponent(new MessageComponent());
             }
         ];

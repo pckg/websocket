@@ -1,6 +1,8 @@
 <?php namespace Pckg\Websocket\Auth;
 
 
+use Pckg\Auth\Record\User;
+
 /**
  * Class UserDb
  */
@@ -22,7 +24,7 @@ class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
 
     /**
      * Add new user
-     * 
+     *
      * @param string $userName
      * @param string $password
      * @param string $salt
@@ -40,17 +42,46 @@ class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
 
     /**
      * Get user by username
-     * 
+     *
      * @param string $authId Username
      * @return boolean
      */
     function get($authId)
     {
-        if (isset($this->users[$authId])) {
-            return $this->users[$authId];
-        } else {
+        if ($authId === 'guest') {
+            return [
+                'authid' => 'guest',
+                'key' => \Thruway\Common\Utils::getDerivedKey('guest', 'guestsalt'),
+                'salt' => 'guestsalt',
+            ];
+        } else if ($authId === 'admin') {
+            return [
+                'authid' => 'admin',
+                'key' => \Thruway\Common\Utils::getDerivedKey('admin', 'adminsalt'),
+                'salt' => 'adminsalt',
+            ];
+        }
+
+        /**
+         * Auth id in our case is id:email.
+         * Could it be an API key?
+         */
+        $exploded = explode(':', $authId, 2);
+        if (!is_numeric($exploded[0]) || !isValidEmail($exploded[1])) {
             return false;
         }
+
+        $user = User::gets(['id' => $exploded[0], 'email' => $exploded[1]]);
+
+        if (!$user || !$user->autologin) {
+            return false;
+        }
+
+        return [
+            'authid' => $authId,
+            'key' => \Thruway\Common\Utils::getDerivedKey($user->autologin, auth()->getSecurityHash()),
+            'salt' => null,
+        ];
     }
 
 } 
