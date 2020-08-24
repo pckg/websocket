@@ -1,5 +1,6 @@
 <?php namespace Pckg\Websocket\Provider;
 
+use Pckg\Database\Record;
 use Pckg\Framework\Config;
 use Pckg\Framework\Provider;
 use Pckg\Websocket\Console\PublishMessage;
@@ -48,6 +49,15 @@ class Websocket extends Provider
                     $websocket->publish($topic, [json_encode($message)]);
                 }
             ],
+            \Pckg\Auth\Service\Auth::class . '.getUserDataArray' => function (Record $user = null, array $data, callable $setter) {
+                if (!$user || !$user->autologin) {
+                    return;
+                }
+
+                $setter([
+                    'requestToken' => \Thruway\Common\Utils::getDerivedKey($user->autologin, auth()->getSecurityHash()),
+                ]);
+            }
         ];
     }
 
