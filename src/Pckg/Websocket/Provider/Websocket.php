@@ -46,7 +46,7 @@ class Websocket extends Provider
         return [
             \Pckg\Websocket\Service\Websocket::class . ':publish' => [
                 function (string $topic, $message, \Pckg\Websocket\Service\Websocket $websocket) {
-                    $websocket->publish($topic, [json_encode($message)]);
+                    $websocket->publish($topic, $message);
                 }
             ],
             \Pckg\Auth\Service\Auth::class . '.getUserDataArray' => function (Record $user = null, array $data, callable $setter) {
