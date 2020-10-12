@@ -4,6 +4,7 @@ use Pckg\Websocket\Auth\PckgAuthProvider;
 use Pckg\Websocket\Auth\PckgClientAuth;
 use Pckg\Websocket\Auth\StaticUserDb;
 use Pckg\Websocket\Auth\UserDb;
+use Psr\Log\NullLogger;
 use Ratchet\MessageComponentInterface;
 use React\EventLoop\Factory;
 use Thruway\Authentication\AuthenticationManager;
@@ -12,6 +13,7 @@ use Thruway\Authentication\ClientWampCraAuthenticator;
 use Thruway\Authentication\WampCraAuthProvider;
 use Thruway\ClientSession;
 use Thruway\Connection;
+use Thruway\Logging\Logger;
 use Thruway\Peer\Router;
 use Thruway\Realm;
 use Thruway\Transport\RatchetTransportProvider;
@@ -38,8 +40,36 @@ class Websocket
     {
         //$client = new Client("realm1");
         //$client->addTransportProvider(new PawlTransportProvider("ws://pusher-runner:50445/"));
-        d($options);
-        $this->connection = new Connection(
+        $this->options = $options;
+        $this->connection = $this->createConnection($options);
+    }
+
+    /**
+     *
+     */
+    public function __destruct()
+    {
+        if (!$this->connection) {
+            return;
+        }
+
+        try {
+            $this->connection->close();
+        } catch (\Throwable $e) {
+            error_log('Error closing Websocket connection: ' . exception($e));
+        }
+    }
+
+    /**
+     * @param $options
+     * @return Connection
+     * @throws \Exception
+     */
+    public function createConnection($options)
+    {
+        Logger::set(new NullLogger());
+
+        return new Connection(
             [
                 "realm" => 'realm1',
                 "onClose" => function () {
@@ -50,7 +80,6 @@ class Websocket
                 'authid' => $options['authid'],
             ]
         );
-        $this->options = $options;
     }
 
     /**
@@ -86,7 +115,7 @@ class Websocket
 
         $authenticationManager = new AuthenticationManager();
         $router->registerModule($authenticationManager);
-        
+
         $this->authorizeRouter($router);
 
         $authProvClient = new PckgAuthProvider(["realm1"]);
@@ -102,7 +131,7 @@ class Websocket
         $authProvClient->setUserDb($userDb);
         $router->addInternalClient($authProvClient);
     }
-    
+
     private function authorizeRouter(Router $router)
     {
         $authorizationManager = new \Pckg\Websocket\Service\AuthorizationManager('realm1');
@@ -112,11 +141,11 @@ class Websocket
          */
         $authorizationManager->flushAuthorizationRules(false);
 
-        $rule         = new \stdClass();
-        $rule->role   = 'niceguy';
+        $rule = new \stdClass();
+        $rule->role = 'niceguy';
         $rule->action = 'call'; // publish, subscribe, register, call
-        $rule->uri    = 'some_rpc';
-        $rule->allow  = false;
+        $rule->uri = 'some_rpc';
+        $rule->allow = false;
 
         $authorizationManager->addAuthorizationRule([$rule]);
         $authorizationManager->setReady(true);
@@ -196,7 +225,8 @@ class Websocket
         echo "Publish Error {$error}\n";
     }
 
-    public function registerMessageComponent(MessageComponentInterface $messageComponent) {
+    public function registerMessageComponent(MessageComponentInterface $messageComponent)
+    {
         d('running secure websocket');
         $loop = \React\EventLoop\Factory::create();
 

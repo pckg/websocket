@@ -71,7 +71,16 @@ class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
             return false;
         }
 
-        $user = User::gets(['id' => $exploded[0], 'email' => $exploded[1]]);
+        /**
+         * Fetch user from the database.
+         * Should we throw exceptions here?
+         */
+        try {
+            $user = User::gets(['id' => $exploded[0], 'email' => $exploded[1]]);
+        } catch (\Throwable $e) {
+            error_log('Error fetching user: ' . exception($e));
+            return false;
+        }
 
         if (!$user || !$user->autologin) {
             return false;
