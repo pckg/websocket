@@ -83,6 +83,7 @@ class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
         }
 
         if (!$user || !$user->autologin) {
+            error_log('No user or no autologin');
             return false;
         }
 

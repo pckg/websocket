@@ -1,5 +1,6 @@
 <?php namespace Pckg\Websocket\Service;
 
+use Pckg\Database\Repository;
 use Pckg\Websocket\Auth\PckgAuthProvider;
 use Pckg\Websocket\Auth\PckgClientAuth;
 use Pckg\Websocket\Auth\StaticUserDb;
@@ -105,6 +106,50 @@ class Websocket
         $this->authenticateRouter($router);
 
         $router->registerModule(new RatchetTransportProvider($bind, $port));
+
+        /**
+         * Trigger heartbeat to keep long-lived connections open?
+         * What would we like to do here? Ping our clients?
+         */
+        $heartbeatInterval = 30;
+        $router->getLoop()->addPeriodicTimer(30, function () use ($router) {
+            /**
+             * Ping clients?
+             */
+            error_log("Heartbeat @ " . date('Y-m-d H:i:s') . ", " . ($router->managerGetSessionCount()[0] ?? 0) . " sessions");
+            dispatcher()->trigger('heartbeat');
+        });
+
+        /**
+         * Single heartbeat mechanysm when there are multiple heartbeats (like in process).
+         */
+        $lastHeartbeat = time();
+        dispatcher()->listen('heartbeat', function () use (&$lastHeartbeat) {
+            try {
+                if (time() < ($lastHeartbeat + ($heartbeatInterval * 0.9))) {
+                    return;
+                }
+
+                $lastHeartbeat = time();
+                foreach (Repository\RepositoryFactory::getRepositories() as $repository) {
+                    /**
+                     * @var $repository Repository
+                     */
+                    if (!method_exists($repository, 'checkThenExecute')) {
+                        continue;
+                    }
+
+                    /**
+                     * Check server status.
+                     */
+                    $repository->checkThenExecute(function () {
+                        error_log('PDO ping made');
+                    });
+                }
+            } catch (\Throwable $e) {
+                error_log('EXCEPTION in heartbeat:' . exception($e));
+            }
+        });
 
         $router->start();
     }
