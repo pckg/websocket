@@ -124,7 +124,7 @@ class Websocket
          * Single heartbeat mechanysm when there are multiple heartbeats (like in process).
          */
         $lastHeartbeat = time();
-        dispatcher()->listen('heartbeat', function () use (&$lastHeartbeat) {
+        dispatcher()->listen('heartbeat', function () use (&$lastHeartbeat, $heartbeatInterval) {
             try {
                 if (time() < ($lastHeartbeat + ($heartbeatInterval * 0.9))) {
                     return;
