@@ -70,19 +70,22 @@ class Websocket
      */
     public function createConnection($options)
     {
-        Logger::set(new NullLogger());
+        //Logger::set(new NullLogger());
 
-        return new Connection(
-            [
-                "realm" => 'realm1',
-                "onClose" => function () {
+        $data = [
+            "realm" => $options['realm'] ?? 'realm1',
+            "onClose" => function () {
 
-                },
-                "url" => $options['scheme'] . '://' . $options['host'] . ':' . $options['port'],
-                'authmethods' => ['pckg'],
-                'authid' => $options['authid'],
-            ]
-        );
+            },
+            "url" => $options['scheme'] . '://' . $options['host'] . ':' . $options['port'],
+        ];
+
+        if (isset($options['authid'])) {
+            $data['authmethods'] = ['pckg'];
+            $data['authid'] = $options['authid'];
+        }
+
+        return new Connection($data);
     }
 
     /**
@@ -254,6 +257,10 @@ class Websocket
 
         $this->connection->open();
     }
+    
+    public function getConnection() {
+        return $this->connection;
+    }
 
     public function authenticateClient($user = 'guest', $pass = 'guest')
     {
@@ -271,6 +278,7 @@ class Websocket
             $session->subscribe($topic, $callback);
         });
 
+        error_log('Opening connection');
         $this->connection->open();
     }
 
