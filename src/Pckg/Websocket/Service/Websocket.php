@@ -81,9 +81,11 @@ class Websocket
         ];
 
         if (isset($options['authid'])) {
-            $data['authmethods'] = ['pckg'];
+            $data['authmethods'] = ['wampcra'];
             $data['authid'] = $options['authid'];
         }
+
+        error_log('creating connection ' . json_encode($data));
 
         return new Connection($data);
     }
@@ -106,6 +108,7 @@ class Websocket
 
     public function startAuthRouter($bind = "0.0.0.0", $port = 50445)
     {
+        error_log('Websocket@startAuthRouter');
         $router = new Router();
 
         $this->authenticateRouter($router);
@@ -161,6 +164,7 @@ class Websocket
 
     public function authenticateRouter(Router $router)
     {
+        error_log('Websocket@authenticateRouter');
         $userDb = new UserDb();
 
         $authenticationManager = new AuthenticationManager();
@@ -168,12 +172,18 @@ class Websocket
 
         $this->authorizeRouter($router);
 
+        return;
+
+        /**
+         * We can define multiple realms.
+         */
         $realms = config('pckg.websocket.auth.realms', []);
         foreach ($realms as $realm => $realmConfig) {
-            $authProvClient = new PckgAuthProvider([$realm]);
-            $authProvClient->setUserDb($userDb);
-            $router->addInternalClient($authProvClient);
+            error_log('Registering realms ' . json_encode($realms));
         }
+        $authProvClient = new PckgAuthProvider(array_keys($realms));
+        $authProvClient->setUserDb($userDb);
+        $router->addInternalClient($authProvClient);
     }
 
     /**
@@ -189,6 +199,7 @@ class Websocket
 
         $realms = config('pckg.websocket.auth.realms', $defaultRealms);
         foreach ($realms as $realm => $config) {
+            error_log('Authorize router realm ' . $realm . ' ' . json_encode($config));
             $authorizationManager = new \Pckg\Websocket\Service\AuthorizationManager($realm);
 
             /**
@@ -200,7 +211,8 @@ class Websocket
              * Add authorization rules.
              */
             foreach ($config['roles'] ?? [] as $role) {
-                $authorizationManager->addAuthorizationRule((object)$role);
+                error_log(json_encode((object)$role));
+                $authorizationManager->addAuthorizationRule([(object)$role]);
             }
 
             $authorizationManager->setReady(true);
@@ -222,6 +234,9 @@ class Websocket
 
         $this->connection->on('open', function (ClientSession $session) use ($topic, $data, $client, $close) {
 
+            error_log('connection opened, publishing');
+            error_log("authenticated: " . ($session->getAuthenticated() ? 'yes' : 'no'));
+
             $session->publish($topic, [json_encode($data)], [], ["acknowledge" => true])->then(
                 function () use ($client, $close) {
                     $this->ack();
@@ -239,6 +254,7 @@ class Websocket
                 }
             );
         });
+
         $this->authenticateClient('admin', 'admin');
 
         $this->connection->open();
@@ -250,6 +266,7 @@ class Websocket
 
     public function authenticateClient($user = 'guest', $pass = 'guest')
     {
+        error_log('authenticating client ' . $user . ' ' . $pass);
         $this->connection->getClient()->addClientAuthenticator(new PckgClientAuth($user, $pass));
     }
 
@@ -298,7 +315,7 @@ class Websocket
 
     public function registerMessageComponent(MessageComponentInterface $messageComponent)
     {
-        d('running secure websocket');
+        error_log('running secure websocket');
         $loop = \React\EventLoop\Factory::create();
 
         $webSock = new \React\Socket\Server('0.0.0.0:50444', $loop);
@@ -323,7 +340,7 @@ class Websocket
         $pull = $context->getSocket(\ZMQ::SOCKET_PULL);
         $pull->bind('tcp://127.0.0.1:5555'); // Binding to 127.0.0.1 means the only client that can connect is itself
         $pull->on('message', function (...$data) use ($messageComponent) {
-            d('listener', $data);
+            error_log('listener got message ' . json_encode($data));
             $messageComponent->forTest('some entry');
         });
 

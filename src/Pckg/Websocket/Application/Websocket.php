@@ -17,6 +17,7 @@ class Websocket extends Console
                     'host' => dotenv('WEBSOCKET_HOST', 'pusher-runner'),
                     'port' => dotenv('WEBSOCKET_PORT', 50445),
                     'authid' => dotenv('WEBSOCKET_AUTH_ID', 'admin'),
+                    'authsecret' => dotenv('WEBSOCKET_AUTH_SECRET', 'admin'),
                 ]))->registerMessageComponent(new MessageComponent());
             }
         ];

@@ -13,6 +13,9 @@ class AuthorizationManager extends \Thruway\Authentication\AuthorizationManager
         $username = $session->getAuthenticationDetails()->getAuthId();
         $realm = $session->getRealm()->getRealmName();
 
+        /**
+         * Admin can publish, call, subscribe, ...
+         */
         if ($username === 'admin') {
             return true;
         }
@@ -21,14 +24,15 @@ class AuthorizationManager extends \Thruway\Authentication\AuthorizationManager
             $channel = $actionMsg->getTopicName();
             $metaInfo = $session->getMetaInfo();
             error_log("subscribing to " . $channel . ' realm ' . $realm);
-            error_log(json_encode());
+            error_log(json_encode($metaInfo));
+            return parent::isAuthorizedTo($session, $actionMsg);
 
             /**
              * Allowed by realm role.
              */
             $configRoles = config('pckg.websocket.auth.realms.' . $realm . '.roles', []);
             foreach ($configRoles as $role) {
-                if (!$role['allow'] || $role['action'] !== 'subscribe' || $role['role'] !== $metaInfo['role']) {
+                if (!$role['allow'] || $role['action'] !== 'subscribe' || $role['role'] !== $metaInfo['authrole']) {
                     continue;
                 }
 
