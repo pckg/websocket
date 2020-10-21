@@ -8,6 +8,7 @@ use Pckg\Websocket\Auth\UserDb;
 use Psr\Log\NullLogger;
 use Ratchet\MessageComponentInterface;
 use React\EventLoop\Factory;
+use Thruway\Authentication\AnonymousAuthenticator;
 use Thruway\Authentication\AuthenticationManager;
 use Thruway\Authentication\AuthorizationManager;
 use Thruway\Authentication\ClientWampCraAuthenticator;
@@ -17,6 +18,7 @@ use Thruway\Connection;
 use Thruway\Logging\Logger;
 use Thruway\Peer\Router;
 use Thruway\Realm;
+use Thruway\Role\Subscriber;
 use Thruway\Transport\RatchetTransportProvider;
 
 class Websocket
@@ -163,9 +165,17 @@ class Websocket
 
         $this->authorizeRouter($router);
 
+        /**
+         * Realm1 - authenticated realm
+         */
         $authProvClient = new PckgAuthProvider(["realm1"]);
         $authProvClient->setUserDb($userDb);
         $router->addInternalClient($authProvClient);
+
+        /**
+         * Public - unauthenticated realm
+         */
+
         return;
 
 
@@ -177,24 +187,36 @@ class Websocket
         $router->addInternalClient($authProvClient);
     }
 
+    /**
+     * @param Router $router
+     */
     private function authorizeRouter(Router $router)
     {
-        $authorizationManager = new \Pckg\Websocket\Service\AuthorizationManager('realm1');
+        $defaultRealms = [
+            'realm1' => [
+                'roles' => [],
+            ],
+        ];
 
-        /**
-         * Disallow all access by default.
-         */
-        $authorizationManager->flushAuthorizationRules(false);
+        $realms = config('pckg.websocket.auth.realms', $defaultRealms);
+        foreach ($realms as $realm => $config) {
+            $authorizationManager = new \Pckg\Websocket\Service\AuthorizationManager($realm);
 
-        $rule = new \stdClass();
-        $rule->role = 'niceguy';
-        $rule->action = 'call'; // publish, subscribe, register, call
-        $rule->uri = 'some_rpc';
-        $rule->allow = false;
+            /**
+             * Disallow all access by default.
+             */
+            $authorizationManager->flushAuthorizationRules(false);
 
-        $authorizationManager->addAuthorizationRule([$rule]);
-        $authorizationManager->setReady(true);
-        $router->registerModule($authorizationManager);
+            /**
+             * Add authorization rules.
+             */
+            foreach ($config['roles'] ?? [] as $role) {
+                $authorizationManager->addAuthorizationRule((object)$role);
+            }
+
+            $authorizationManager->setReady(true);
+            $router->registerModule($authorizationManager);
+        }
     }
 
     /**
@@ -202,19 +224,29 @@ class Websocket
      * @param array $data
      * @throws \InvalidArgumentException
      */
-    public function publish(string $topic, array $data = [])
+    public function publish(string $topic, array $data = [], bool $close = true)
     {
         $client = $this->connection;
-        $this->connection->on('open', function (ClientSession $session) use ($topic, $data, $client) {
+        $topic = str_replace('-', '_', $topic);
+
+        error_log('publishing on ' . $topic . ' for event ' . $data['event']);
+
+        $this->connection->on('open', function (ClientSession $session) use ($topic, $data, $client, $close) {
 
             $session->publish($topic, [json_encode($data)], [], ["acknowledge" => true])->then(
-                function () use ($client) {
+                function () use ($client, $close) {
                     $this->ack();
-                    $client->close();
+                    if ($close) {
+                        $client->close();
+                        $this->connection = null;
+                    }
                 },
-                function ($error) use ($client) {
+                function ($error) use ($client, $close) {
                     $this->nack($error);
-                    $client->close();
+                    if ($close) {
+                        $client->close();
+                        $this->connection = null;
+                    }
                 }
             );
         });

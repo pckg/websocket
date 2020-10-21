@@ -53,12 +53,14 @@ class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
                 'authid' => 'guest',
                 'key' => \Thruway\Common\Utils::getDerivedKey('guest', 'guestsalt'),
                 'salt' => 'guestsalt',
+                'authrole' => 'guest',
             ];
         } else if ($authId === 'admin') {
             return [
                 'authid' => 'admin',
                 'key' => \Thruway\Common\Utils::getDerivedKey('admin', 'adminsalt'),
                 'salt' => 'adminsalt',
+                'authrole' => 'admin',
             ];
         }
 
@@ -91,6 +93,7 @@ class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
             'authid' => $authId,
             'key' => \Thruway\Common\Utils::getDerivedKey($user->autologin, auth()->getSecurityHash()),
             'salt' => null,
+            'authrole' => 'user',
         ];
     }
 

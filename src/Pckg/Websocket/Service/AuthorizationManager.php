@@ -11,13 +11,36 @@ class AuthorizationManager extends \Thruway\Authentication\AuthorizationManager
          * Of client is not subscribed, he cannot receive events.
          */
         $username = $session->getAuthenticationDetails()->getAuthId();
+        $realm = $session->getRealm()->getRealmName();
+
         if ($username === 'admin') {
             return true;
         }
+
         if ($actionMsg instanceof \Thruway\Message\SubscribeMessage) {
             $channel = $actionMsg->getTopicName();
-            error_log("subscribing to " . $channel);
-            error_log(json_encode($session->getMetaInfo()));
+            $metaInfo = $session->getMetaInfo();
+            error_log("subscribing to " . $channel . ' realm ' . $realm);
+            error_log(json_encode());
+
+            /**
+             * Allowed by realm role.
+             */
+            $configRoles = config('pckg.websocket.auth.realms.' . $realm . '.roles', []);
+            foreach ($configRoles as $role) {
+                if (!$role['allow'] || $role['action'] !== 'subscribe' || $role['role'] !== $metaInfo['role']) {
+                    continue;
+                }
+
+                /**
+                 * Allowed by uri, role and realm.
+                 */
+                if ($role['uri'] === $channel) {
+                    return true;
+                } else if (substr($role['uri'], -1) === '.' && preg_match('/^' . $role['uri'] . '.(.*)$/i', $channel)) {
+                    return true;
+                }
+            }
 
             /**
              * Get authenticated user.
@@ -26,12 +49,18 @@ class AuthorizationManager extends \Thruway\Authentication\AuthorizationManager
             if ($username === 'guest') {
                 $user = null;
             } else {
+                /**
+                 * Isn't this solved in UserDb?
+                 */
                 $exploded = explode(':', $username, 2);
-                if (count($exploded) !== 2) {
-                    return false;
-                }
-                $user = User::gets(['id' => $exploded[0], 'email' => $exploded[1]]);
-                if (!$user) {
+                if (count($exploded) === 2) {
+                    $user = User::gets(['id' => $exploded[0], 'email' => $exploded[1]]);
+                    if (!$user) {
+                        error_log('no user');
+                        return false;
+                    }
+                } else if ($realm !== 'realm2') {
+                    error_log('not double parameter');
                     return false;
                 }
             }
@@ -45,7 +74,7 @@ class AuthorizationManager extends \Thruway\Authentication\AuthorizationManager
             $gates = config('pckg.websocket.auth.gates', []);
             $authorized = false;
             foreach ($gates as $gate) {
-                if (!preg_match('/' . $channel . '/i', $channel)) {
+                if (!preg_match('/^' . $gate['channel'] . '$/i', $channel)) {
                     continue;
                 }
 
