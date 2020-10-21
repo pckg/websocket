@@ -168,26 +168,12 @@ class Websocket
 
         $this->authorizeRouter($router);
 
-        /**
-         * Realm1 - authenticated realm
-         */
-        $authProvClient = new PckgAuthProvider(["realm1"]);
-        $authProvClient->setUserDb($userDb);
-        $router->addInternalClient($authProvClient);
-
-        /**
-         * Public - unauthenticated realm
-         */
-
-        return;
-
-
-        $userDb = new StaticUserDb();
-        $userDb->add('guest', 'guest', 'salt123');
-
-        $authProvClient = new PckgAuthProvider(["realm1"]);
-        $authProvClient->setUserDb($userDb);
-        $router->addInternalClient($authProvClient);
+        $realms = config('pckg.websocket.auth.realms', []);
+        foreach ($realms as $realm => $realmConfig) {
+            $authProvClient = new PckgAuthProvider([$realm]);
+            $authProvClient->setUserDb($userDb);
+            $router->addInternalClient($authProvClient);
+        }
     }
 
     /**
