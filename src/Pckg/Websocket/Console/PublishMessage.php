@@ -33,14 +33,14 @@ class PublishMessage extends Command
      */
     public function handle()
     {
-        $channel = $this->option('channel');
-        $event = $this->option('event');
-        $data = $this->decodeOption('data');
+        $channel = $this->option('channel') ?? 'test-channel';
+        $event = $this->option('event') ?? 'test-event';
+        $data = $this->decodeOption('data') ?? 'test-data';
         /**
          * @var $websocket Websocket
          */
         $websocket = resolve(Websocket::class);
-        $websocket->authenticateClient('admin', 'admin');
+        //$websocket->authenticateClient('admin', 'admin');
         $websocket->publish($channel, ['event' => $event, 'data' => $data]);
     }
 
