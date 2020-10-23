@@ -58,7 +58,7 @@ class PublishMessage extends Command
          * This needs to be called before we start the client/session - anytime before that.
          */
         if ($user) {
-            $client->addClientAuthenticator(new \Thruway\Authentication\ClientWampCraAuthenticator($user, $password));
+            $client->addClientAuthenticator(new \Thruway\Authentication\ClientWampCraAuthenticator($user, $pass));
             $client->setAuthId($user);
         }
 
