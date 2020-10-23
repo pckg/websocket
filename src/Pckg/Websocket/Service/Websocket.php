@@ -16,11 +16,39 @@ use Thruway\Authentication\WampCraAuthProvider;
 use Thruway\ClientSession;
 use Thruway\Connection;
 use Thruway\Logging\Logger;
+use Thruway\Peer\Client;
 use Thruway\Peer\Router;
 use Thruway\Realm;
 use Thruway\Role\Subscriber;
 use Thruway\Transport\RatchetTransportProvider;
 
+/**
+ * Class Websocket
+ * @package Pckg\Websocket\Service
+ *
+ * At least one realm needs to be configured on an application router worker in order for WAMP components to be able
+ * to connect to it. You can configure multiple realms, e.g. to separate several client applications served by the
+ * same application router.
+ *
+ * Authorization configuration is per realm.
+ *
+ * Clients are authenticated for a role (this happens at the transport level, see below). You can then configure
+ * which actions are allowed for a particular role.
+ *
+ * The system here is based on URIs, which are used for both subscription topics and registrations. For each role,
+ * you can define what actions are allowed for a particular URI. URIs can be matched exactly or pattern-based, and
+ * each of the four actions (publish, subscribe, register, call) can be allowed or forbidden separately. You can
+ * set a custom authorizer component, which receives information about the attempted action and allows for even more
+ * fine-grained authorization management and integration with existing solutions.
+ *
+ * At least one transport needs to be configured on an application worker in order for WAMP components to be able to
+ * connect to it. You can configure multiple transports, e.g. so that some clients can connect via WebSockets and
+ * others via RawSocket, or using the same protocol but via different ports.
+ *
+ * The transport configuration determines which authentication method to require from clients attempting to connect to
+ * the transport. Crossbar.io offers several authentication methods, including via HTTP cookie, ticket, a
+ * challenge-response mechanism or cryptographic certificates.
+ */
 class Websocket
 {
 
@@ -41,23 +69,16 @@ class Websocket
      */
     public function __construct($options = [])
     {
-        //$client = new Client("realm1");
-        //$client->addTransportProvider(new PawlTransportProvider("ws://pusher-runner:50445/"));
         $this->options = $options;
-        $this->connection = $this->createConnection($options);
     }
 
     /**
-     *
+     * Close connection on destruction.
      */
     public function __destruct()
     {
-        if (!$this->connection) {
-            return;
-        }
-
         try {
-            $this->connection->close();
+            $this->closeConnection();
         } catch (\Throwable $e) {
             error_log('Error closing Websocket connection: ' . exception($e));
         }
@@ -85,7 +106,7 @@ class Websocket
             $data['authid'] = $options['authid'];
         }
 
-        error_log('creating connection ' . json_encode($data));
+        error_log('Connecting to WS ' . json_encode($data));
 
         return new Connection($data);
     }
@@ -99,21 +120,33 @@ class Websocket
     {
         $router = new Router();
 
+        /**
+         *
+         */
         $transportProvider = new RatchetTransportProvider($host, $port);
-
-        $router->addTransportProvider($transportProvider);
+        //$transportProvider->enableKeepAlive($router->getLoop());
+        $router->registerModule($transportProvider);
 
         $router->start();
     }
 
-    public function startAuthRouter($bind = "0.0.0.0", $port = 50445)
+    /**
+     * @param string $bind
+     * @param int $port
+     * @throws \Exception
+     */
+    public function startAuthRouter($host = "0.0.0.0", $port = 50445)
     {
         error_log('Websocket@startAuthRouter');
         $router = new Router();
 
         $this->authenticateRouter($router);
 
-        $router->registerModule(new RatchetTransportProvider($bind, $port));
+        $this->authorizeRouter($router);
+
+        $transportProvider = new RatchetTransportProvider($host, $port);
+        $transportProvider->enableKeepAlive($router->getLoop());
+        $router->registerModule($transportProvider);
 
         /**
          * Trigger heartbeat to keep long-lived connections open?
@@ -167,20 +200,23 @@ class Websocket
         error_log('Websocket@authenticateRouter');
         $userDb = new UserDb();
 
+        /**
+         * Register authentication manager which will take care of authentication.
+         */
         $authenticationManager = new AuthenticationManager();
         $router->registerModule($authenticationManager);
 
-        $this->authorizeRouter($router);
-
-        return;
-
         /**
-         * We can define multiple realms.
+         * We can use multiple realms for different apps or users.
          */
         $realms = config('pckg.websocket.auth.realms', []);
         foreach ($realms as $realm => $realmConfig) {
             error_log('Registering realms ' . json_encode($realms));
         }
+
+        /**
+         * One option is to authenticate as user.
+         */
         $authProvClient = new PckgAuthProvider(array_keys($realms));
         $authProvClient->setUserDb($userDb);
         $router->addInternalClient($authProvClient);
@@ -198,8 +234,9 @@ class Websocket
         ];
 
         $realms = config('pckg.websocket.auth.realms', $defaultRealms);
+        error_log('Websocket@authorizeRouter ' . json_encode($realms));
+
         foreach ($realms as $realm => $config) {
-            error_log('Authorize router realm ' . $realm . ' ' . json_encode($config));
             $authorizationManager = new \Pckg\Websocket\Service\AuthorizationManager($realm);
 
             /**
@@ -211,7 +248,6 @@ class Websocket
              * Add authorization rules.
              */
             foreach ($config['roles'] ?? [] as $role) {
-                error_log(json_encode((object)$role));
                 $authorizationManager->addAuthorizationRule([(object)$role]);
             }
 
@@ -227,29 +263,26 @@ class Websocket
      */
     public function publish(string $topic, array $data = [], bool $close = true)
     {
-        $client = $this->connection;
         $topic = str_replace('-', '_', $topic);
 
         error_log('publishing on ' . $topic . ' for event ' . $data['event']);
 
-        $this->connection->on('open', function (ClientSession $session) use ($topic, $data, $client, $close) {
+        $this->getConnection()->on('open', function (ClientSession $session) use ($topic, $data, $close) {
 
             error_log('connection opened, publishing');
             error_log("authenticated: " . ($session->getAuthenticated() ? 'yes' : 'no'));
 
             $session->publish($topic, [json_encode($data)], [], ["acknowledge" => true])->then(
-                function () use ($client, $close) {
+                function () use ($close) {
                     $this->ack();
                     if ($close) {
-                        $client->close();
-                        $this->connection = null;
+                        $this->closeConnection();
                     }
                 },
-                function ($error) use ($client, $close) {
+                function ($error) use ($close) {
                     $this->nack($error);
                     if ($close) {
-                        $client->close();
-                        $this->connection = null;
+                        $this->closeConnection();
                     }
                 }
             );
@@ -257,17 +290,35 @@ class Websocket
 
         $this->authenticateClient('admin', 'admin');
 
-        $this->connection->open();
+        $this->getConnection()->open();
     }
-    
-    public function getConnection() {
+
+    public function getConnection()
+    {
+        if (!$this->connection) {
+            $this->connection = $this->createConnection($this->options);
+        }
+
         return $this->connection;
+    }
+
+    /**
+     *
+     */
+    public function closeConnection()
+    {
+        if (!$this->connection) {
+            return;
+        }
+        $this->connection->close();
+        $this->connection = null;
     }
 
     public function authenticateClient($user = 'guest', $pass = 'guest')
     {
         error_log('authenticating client ' . $user . ' ' . $pass);
-        $this->connection->getClient()->addClientAuthenticator(new PckgClientAuth($user, $pass));
+        $this->getConnection()->getClient()->setAuthId($user);
+        $this->getConnection()->getClient()->addClientAuthenticator(new PckgClientAuth($user, $pass));
     }
 
     /**
@@ -277,23 +328,24 @@ class Websocket
      */
     public function subscribe(string $topic, callable $callback)
     {
-        $this->connection->on('open', function (ClientSession $session) use ($topic, $callback) {
+        $this->getConnection()->on('open', function (ClientSession $session) use ($topic, $callback) {
             $session->subscribe($topic, $callback);
         });
 
-        error_log('Opening connection');
-        $this->connection->open();
+        error_log('Opening connection for subscribe');
+        $this->getConnection()->open();
     }
 
     public function register(string $command, callable $callback)
     {
-        $this->connection->on('open', function (ClientSession $session) use ($command, $callback) {
+        $this->getConnection()->on('open', function (ClientSession $session) use ($command, $callback) {
             $session->register($command, $callback);
         });
 
         // $this->authenticateClient();
 
-        $this->connection->open();
+        error_log('Opening connection for register');
+        $this->getConnection()->open();
     }
 
     /**
@@ -315,9 +367,12 @@ class Websocket
 
     public function registerMessageComponent(MessageComponentInterface $messageComponent)
     {
-        error_log('running secure websocket');
+        error_log('Initializing secure WS');
         $loop = \React\EventLoop\Factory::create();
 
+        /**
+         * Create a public socket for clients.
+         */
         $webSock = new \React\Socket\Server('0.0.0.0:50444', $loop);
         $webSock = new \React\Socket\SecureServer($webSock, $loop, [
             'local_cert' => '/etc/ssl/certs/apache-selfsigned.crt', // path to your cert
@@ -326,6 +381,9 @@ class Websocket
             'verify_peer' => FALSE
         ]);
 
+        /**
+         * Serve public WS over HTTP webserver.
+         */
         $webServer = new \Ratchet\Server\IoServer(
             new \Ratchet\Http\HttpServer(
                 new \Ratchet\WebSocket\WsServer(
@@ -336,14 +394,21 @@ class Websocket
             $loop
         );
 
+        /**
+         * Create a private socket server.
+         */
         $context = new \React\ZMQ\Context($loop);
         $pull = $context->getSocket(\ZMQ::SOCKET_PULL);
-        $pull->bind('tcp://127.0.0.1:5555'); // Binding to 127.0.0.1 means the only client that can connect is itself
+        $pull->bind('tcp://127.0.0.1:5555');
         $pull->on('message', function (...$data) use ($messageComponent) {
             error_log('listener got message ' . json_encode($data));
             $messageComponent->forTest('some entry');
         });
 
+        /**
+         * Start the loop.
+         */
+        error_log('Starting secure WS server loop');
         $webServer->run();
     }
 

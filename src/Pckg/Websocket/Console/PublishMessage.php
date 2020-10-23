@@ -8,6 +8,7 @@ use PhpOffice\PhpSpreadsheet\Calculation\Web;
 use Scintilla\Parser\AbstractSource;
 use Scintilla\Record\Search;
 use Symfony\Component\Console\Input\InputOption;
+use Thruway\Peer\Client;
 
 /**
  * Class PublishMessage
@@ -25,6 +26,9 @@ class PublishMessage extends Command
         $this->setName('websocket:publish-message')->addOptions([
             'channel' => 'Publish message on channel',
             'event' => 'Publish message on event',
+            'realm' => 'Publish message on realm',
+            'user' => 'Authenticate with user',
+            'pass' => 'Authenticate with pass',
             'data' => 'JSON data'], InputOption::VALUE_REQUIRED);
     }
 
@@ -36,11 +40,35 @@ class PublishMessage extends Command
         $channel = $this->option('channel') ?? 'test-channel';
         $event = $this->option('event') ?? 'test-event';
         $data = $this->decodeOption('data') ?? 'test-data';
+        $realm = $this->decodeOption('realm') ?? 'test-realm';
+        $user = $this->decodeOption('user') ?? 'test-user';
+        $pass = $this->decodeOption('pass') ?? 'test-pass';
+
+        $client = new Client($realm);
+
+        $client->setAttemptRetry(false);
+
+        $client->addTransportProvider(new \Thruway\Transport\PawlTransportProvider("ws://pusher-runner:50445"));
+
+        $client->on('open', function ($session) use ($channel, $data) {
+            $session->publish($channel, [$data]);
+        });
+
         /**
-         * @var $websocket Websocket
+         * This needs to be called before we start the client/session - anytime before that.
          */
+        if ($user) {
+            $client->addClientAuthenticator(new \Thruway\Authentication\ClientWampCraAuthenticator($user, $password));
+            $client->setAuthId($user);
+        }
+
+        $client->start();
+
+        ddd('okay');
+        return;
+
         $websocket = resolve(Websocket::class);
-        //$websocket->authenticateClient('admin', 'admin');
+        $websocket->authenticateClient($user, $password);
         $websocket->publish($channel, ['event' => $event, 'data' => $data]);
     }
 

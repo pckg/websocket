@@ -11,11 +11,11 @@ class MessageComponent implements MessageComponentInterface
     public function __construct()
     {
         $this->clients = new \SplObjectStorage;
-        d('created storage');
+        error_log('created storage');
     }
 
     public function forTest($m) {
-        d('for test', count($this->clients));
+        error_log('for test', count($this->clients));
         foreach ($this->clients as $client) {
             $client->send($m);
         }
@@ -26,7 +26,7 @@ class MessageComponent implements MessageComponentInterface
         // Store the new connection to send messages to later
         $this->clients->attach($conn);
 
-        echo "New connection! ({$conn->resourceId})\n";
+        error_log("New connection! ({$conn->resourceId})");
 
         // The sender is not the receiver, send to each client connected
         $conn->send('test message');

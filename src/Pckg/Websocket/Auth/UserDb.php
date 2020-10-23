@@ -92,7 +92,7 @@ class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
         return [
             'authid' => $authId,
             'key' => \Thruway\Common\Utils::getDerivedKey($user->autologin, auth()->getSecurityHash()),
-            'salt' => null,
+            'salt' => auth()->getSecurityHash(),
             'authrole' => 'user',
         ];
     }

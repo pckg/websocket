@@ -20,7 +20,9 @@ class AuthorizationManager extends \Thruway\Authentication\AuthorizationManager
             return true;
         }
 
-        if ($actionMsg instanceof \Thruway\Message\SubscribeMessage) {
+        /*if ($actionMsg instanceof \Thruway\Message\PublishMessage) {
+            return true; //?
+        } else */if ($actionMsg instanceof \Thruway\Message\SubscribeMessage) {
             $channel = $actionMsg->getTopicName();
             $metaInfo = $session->getMetaInfo();
             error_log("subscribing to " . $channel . ' realm ' . $realm);
