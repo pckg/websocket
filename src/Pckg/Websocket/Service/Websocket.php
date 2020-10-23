@@ -314,11 +314,18 @@ class Websocket
         $this->connection = null;
     }
 
+    /**
+     * @param string $user
+     * @param string $pass
+     * @return $this
+     */
     public function authenticateClient($user = 'guest', $pass = 'guest')
     {
         error_log('authenticating client ' . $user . ' ' . $pass);
         $this->getConnection()->getClient()->setAuthId($user);
         $this->getConnection()->getClient()->addClientAuthenticator(new PckgClientAuth($user, $pass));
+
+        return $this;
     }
 
     /**

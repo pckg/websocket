@@ -40,9 +40,9 @@ class PublishMessage extends Command
         $channel = $this->option('channel') ?? 'test-channel';
         $event = $this->option('event') ?? 'test-event';
         $data = $this->decodeOption('data') ?? 'test-data';
-        $realm = $this->decodeOption('realm') ?? 'test-realm';
-        $user = $this->decodeOption('user') ?? 'test-user';
-        $pass = $this->decodeOption('pass') ?? 'test-pass';
+        $realm = $this->option('realm') ?? 'test-realm';
+        $user = $this->option('user') ?? 'test-user';
+        $pass = $this->option('pass') ?? 'test-pass';
 
         $client = new Client($realm);
 
