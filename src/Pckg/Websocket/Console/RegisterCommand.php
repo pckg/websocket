@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Console;
+<?php
+
+namespace Pckg\Websocket\Console;
 
 use Pckg\Framework\Console\Command;
 use Pckg\Parser\Driver\Selenium;
@@ -39,8 +41,7 @@ class RegisterCommand extends Command
         $websocket = resolve(Websocket::class);
         $websocket->authenticateClient('admin', 'admin');
         $websocket->register($command, function () use ($console) {
-            return (new $console)->handle();
+            return (new $console())->handle();
         });
     }
-
 }

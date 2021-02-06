@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Command;
+<?php
+
+namespace Pckg\Websocket\Command;
 
 use Pckg\Websocket\Service\Websocket;
 

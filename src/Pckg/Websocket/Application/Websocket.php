@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Application;
+<?php
+
+namespace Pckg\Websocket\Application;
 
 use Pckg\Framework\Application\Console;
 use Pckg\Websocket\Service\MessageComponent;
@@ -22,5 +24,4 @@ class Websocket extends Console
             }
         ];
     }
-
 }

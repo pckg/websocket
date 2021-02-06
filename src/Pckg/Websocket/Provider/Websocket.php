@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Provider;
+<?php
+
+namespace Pckg\Websocket\Provider;
 
 use Pckg\Database\Record;
 use Pckg\Framework\Config;
@@ -60,5 +62,4 @@ class Websocket extends Provider
             }
         ];
     }
-
 }

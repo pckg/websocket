@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Auth;
+<?php
+
+namespace Pckg\Websocket\Auth;
 
 use Thruway\Message\ChallengeMessage;
 

@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Console;
+<?php
+
+namespace Pckg\Websocket\Console;
 
 use Pckg\Framework\Console\Command;
 use Pckg\Parser\Driver\Selenium;
@@ -43,5 +45,4 @@ class SubscribeChannel extends Command
             $this->outputDated('NEW MESSAGE ON CHANNEL:' . json_encode($arg));
         });
     }
-
 }

@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Service;
+<?php
+
+namespace Pckg\Websocket\Service;
 
 use Pckg\Database\Repository;
 use Pckg\Websocket\Auth\PckgAuthProvider;
@@ -96,7 +98,6 @@ class Websocket
         $data = [
             "realm" => $options['realm'] ?? 'realm1',
             "onClose" => function () {
-
             },
             "url" => $options['scheme'] . '://' . $options['host'] . ':' . $options['port'],
         ];
@@ -384,8 +385,8 @@ class Websocket
         $webSock = new \React\Socket\SecureServer($webSock, $loop, [
             'local_cert' => '/etc/ssl/certs/apache-selfsigned.crt', // path to your cert
             'local_pk' => '/etc/ssl/private/apache-selfsigned.key', // path to your server private key
-            'allow_self_signed' => TRUE, // Allow self signed certs (should be false in production)
-            'verify_peer' => FALSE
+            'allow_self_signed' => true, // Allow self signed certs (should be false in production)
+            'verify_peer' => false
         ]);
 
         /**
@@ -418,5 +419,4 @@ class Websocket
         error_log('Starting secure WS server loop');
         $webServer->run();
     }
-
 }

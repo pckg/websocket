@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Service;
+<?php
+
+namespace Pckg\Websocket\Service;
 
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
@@ -10,11 +12,12 @@ class MessageComponent implements MessageComponentInterface
 
     public function __construct()
     {
-        $this->clients = new \SplObjectStorage;
+        $this->clients = new \SplObjectStorage();
         error_log('created storage');
     }
 
-    public function forTest($m) {
+    public function forTest($m)
+    {
         error_log('for test', count($this->clients));
         foreach ($this->clients as $client) {
             $client->send($m);
@@ -35,8 +38,13 @@ class MessageComponent implements MessageComponentInterface
     public function onMessage(ConnectionInterface $from, $msg)
     {
         $numRecv = count($this->clients) - 1;
-        echo sprintf('Connection %d sending message "%s" to %d other connection%s' . "\n"
-            , $from->resourceId, $msg, $numRecv, $numRecv == 1 ? '' : 's');
+        echo sprintf(
+            'Connection %d sending message "%s" to %d other connection%s' . "\n",
+            $from->resourceId,
+            $msg,
+            $numRecv,
+            $numRecv == 1 ? '' : 's'
+        );
 
         foreach ($this->clients as $client) {
             if ($from !== $client) {
@@ -60,5 +68,4 @@ class MessageComponent implements MessageComponentInterface
 
         $conn->close();
     }
-
 }

@@ -1,5 +1,6 @@
-<?php namespace Pckg\Websocket\Auth;
+<?php
 
+namespace Pckg\Websocket\Auth;
 
 use Pckg\Auth\Record\User;
 
@@ -24,7 +25,7 @@ class StaticUserDb implements \Thruway\Authentication\WampCraUserDbInterface
 
     /**
      * Add new user
-     * 
+     *
      * @param string $userName
      * @param string $password
      * @param string $salt
@@ -42,7 +43,7 @@ class StaticUserDb implements \Thruway\Authentication\WampCraUserDbInterface
 
     /**
      * Get user by username
-     * 
+     *
      * @param string $authId Username
      * @return boolean
      */
@@ -50,5 +51,4 @@ class StaticUserDb implements \Thruway\Authentication\WampCraUserDbInterface
     {
         return $this->users[$authId] ?? false;
     }
-
-} 
+}

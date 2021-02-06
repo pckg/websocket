@@ -1,4 +1,6 @@
-<?php namespace Pckg\Websocket\Service;
+<?php
+
+namespace Pckg\Websocket\Service;
 
 use Pckg\Auth\Record\User;
 
@@ -88,7 +90,7 @@ class AuthorizationManager extends \Thruway\Authentication\AuthorizationManager
                     return true;
                 }
             }
-        }
+}
 
         return parent::isAuthorizedTo($session, $actionMsg);
     }

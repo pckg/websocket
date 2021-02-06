@@ -1,5 +1,6 @@
-<?php namespace Pckg\Websocket\Auth;
+<?php
 
+namespace Pckg\Websocket\Auth;
 
 use Pckg\Auth\Record\User;
 
@@ -96,5 +97,4 @@ class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
             'authrole' => 'user',
         ];
     }
-
-} 
+}
