@@ -93,7 +93,7 @@ class Websocket
      */
     public function createConnection($options)
     {
-        //Logger::set(new NullLogger());
+        Logger::set(new NullLogger());
 
         $data = [
             "realm" => $options['realm'] ?? 'realm1',
