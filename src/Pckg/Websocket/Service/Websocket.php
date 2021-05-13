@@ -159,14 +159,14 @@ class Websocket
              * Ping clients?
              */
             error_log("Heartbeat @ " . date('Y-m-d H:i:s') . ", " . ($router->managerGetSessionCount()[0] ?? 0) . " sessions");
-            dispatcher()->trigger('heartbeat');
+            function_exists('dispatcher') && dispatcher()->trigger('heartbeat');
         });
 
         /**
          * Single heartbeat mechanysm when there are multiple heartbeats (like in process).
          */
         $lastHeartbeat = time();
-        dispatcher()->listen('heartbeat', function () use (&$lastHeartbeat, $heartbeatInterval) {
+        function_exists('dispatcher') && dispatcher()->listen('heartbeat', function () use (&$lastHeartbeat, $heartbeatInterval) {
             try {
                 if (time() < ($lastHeartbeat + ($heartbeatInterval * 0.9))) {
                     return;
