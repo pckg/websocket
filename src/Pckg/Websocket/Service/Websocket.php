@@ -361,7 +361,7 @@ class Websocket
      */
     public function ack()
     {
-        echo "Publish Acknowledged, closing\n";
+        error_log("Publish Acknowledged, closing");
     }
 
     /**
@@ -370,7 +370,7 @@ class Websocket
     public function nack($error)
     {
         // publish failed
-        echo "Publish Error {$error}\n";
+        error_log("Publish Error {$error}");
     }
 
     public function registerMessageComponent(MessageComponentInterface $messageComponent)
