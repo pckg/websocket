@@ -7,7 +7,6 @@ use Ratchet\ConnectionInterface;
 
 class MessageComponent implements MessageComponentInterface
 {
-
     protected $clients;
 
     public function __construct()

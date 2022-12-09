@@ -6,7 +6,6 @@ use Thruway\Authentication\WampCraAuthProvider;
 
 class PckgAuthProvider extends WampCraAuthProvider
 {
-
     public function processAuthenticate($signature, $extra = null)
     {
         return parent::processAuthenticate($signature, $extra);

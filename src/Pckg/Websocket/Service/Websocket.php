@@ -53,7 +53,6 @@ use Thruway\Transport\RatchetTransportProvider;
  */
 class Websocket
 {
-
     /**
      * @var Connection
      */

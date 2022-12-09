@@ -17,7 +17,6 @@ use Symfony\Component\Console\Input\InputOption;
  */
 class RegisterCommand extends Command
 {
-
     /**
      * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
      */

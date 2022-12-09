@@ -9,7 +9,6 @@ use Pckg\Auth\Record\User;
  */
 class UserDb implements \Thruway\Authentication\WampCraUserDbInterface
 {
-
     /**
      * @var array
      */

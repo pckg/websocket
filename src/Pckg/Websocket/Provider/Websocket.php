@@ -15,7 +15,6 @@ use Pckg\Websocket\Console\SubscribeChannel;
  */
 class Websocket extends Provider
 {
-
     /**
      * @return array|\Closure[]
      */

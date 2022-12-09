@@ -10,7 +10,6 @@ use Pckg\Websocket\Service\Websocket;
  */
 class RunAuthRouter
 {
-
     /**
      * @var Websocket
      */

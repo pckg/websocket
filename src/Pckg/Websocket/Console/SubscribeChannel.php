@@ -18,7 +18,6 @@ use Symfony\Component\Console\Input\InputOption;
  */
 class SubscribeChannel extends Command
 {
-
     /**
      * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
      */

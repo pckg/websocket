@@ -9,5 +9,4 @@ use Thruway\Message\ChallengeMessage;
  */
 class PckgClientAuth extends \Thruway\Authentication\ClientWampCraAuthenticator implements \Thruway\Authentication\ClientAuthenticationInterface
 {
-
 }

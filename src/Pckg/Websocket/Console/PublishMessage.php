@@ -19,7 +19,6 @@ use Thruway\Peer\Client;
  */
 class PublishMessage extends Command
 {
-
     /**
      * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
      */

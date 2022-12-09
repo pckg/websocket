@@ -8,7 +8,6 @@ use Pckg\Websocket\Service\Websocket as WebsocketService;
 
 class Websocket extends Console
 {
-
     public function runs()
     {
         return [
